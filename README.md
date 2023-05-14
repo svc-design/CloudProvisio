@@ -28,3 +28,16 @@ inventory = /path/to/dynamic/inventory.py
 * 测试和部署：测试您的后端存储是否能够正常工作，并将其部署到生产环境中。
 
 该设计方案使用 Pulumi SDK 实现了一个后端存储，该后端存储可以存储 AWS、Azure 等云资源的状态，同时还支持 Ansible 动态 inventory hosts 和 Playbook 的状态存储。这种设计方案可以提供一个强大的基础设施管理解决方案，同时也可以扩展到其他云提供商和工具。
+
+# Pulumi 相关的文档和资源：
+
+* Pulumi 官方文档：https://www.pulumi.com/docs/
+* Pulumi SDK 文档：https://www.pulumi.com/docs/reference/pkg/
+* Pulumi 示例代码：https://github.com/pulumi/examples
+* Pulumi 社区论坛：https://community.pulumi.com/
+* Pulumi 官方博客：https://www.pulumi.com/blog/
+* Pulumi 官方 YouTube 频道：https://www.youtube.com/c/PulumiCorp
+* Pulumi 官方 Twitter：https://twitter.com/PulumiCorp
+* Pulumi 官方 GitHub 仓库：https://github.com/pulumi
+
+这些资源可以帮助您深入了解 Pulumi 并开始使用它来管理您的云基础设施。
