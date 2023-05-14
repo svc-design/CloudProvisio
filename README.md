@@ -5,120 +5,26 @@
 inventory = /path/to/dynamic/inventory.py
 ```
 
-# pulumi_dynamic_inventory
-```
-#!/usr/bin/env python
+# 结合 pulumi sdk 设计一个后端存储：
 
-import boto3
-import json
-import argparse
+能存储 AWS ，Azure 等各类云资源的状态 (vpc subnet hosts s3 )
+能够提供 Ansible 提供动态 inventory hosts，
+能够存储 Ansible Playbook 的状态
 
-# AWS S3 存储桶名称和文件名
-S3_BUCKET_NAME = 'your-s3-bucket-name'
-S3_FILE_NAME = 'your-s3-file-name'
+要设计一个后端存储，可以使用 Pulumi SDK 来实现。下面是一个可能的设计方案：
 
-# AWS 访问密钥 ID 和访问密钥
-AWS_ACCESS_KEY_ID = 'your-aws-access-key-id'
-AWS_SECRET_ACCESS_KEY = 'your-aws-secret-access-key'
+* 选择一个适合的数据库：可以选择一个支持图形数据模型的数据库，例如 Neo4j 或者 JanusGraph。这些数据库支持复杂的关系查询和图形可视化，非常适合存储云资源的状态。
 
-# Ansible inventory 字典
-inventory = {
-    '_meta': {
-        'hostvars': {}
-    },
-    'all': {
-        'children': []
-    }
-}
+* 定义数据模型：定义一个数据模型，包括 AWS、Azure 等云资源的状态，例如 VPC、子网、主机、S3 存储桶等。同时还需要定义 Ansible Playbook 的状态模型和动态 inventory hosts 的模型。
 
-# 获取 AWS EC2 实例列表
-ec2 = boto3.resource('ec2', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-instances = ec2.instances.all()
+* 实现后端存储：使用 Pulumi SDK 实现一个后端存储，该后端存储使用所选择的数据库来存储数据模型。可以定义一个类来实现后端存储，该类应该包括用于读取和写入状态的方法。
 
-# 循环遍历 EC2 实例并将其添加到 Ansible inventory 中
-for instance in instances:
-    # 获取 EC2 实例的标签
-    tags = {}
-    for tag in instance.tags:
-        tags[tag['Key']] = tag['Value']
+* 实现 Ansible 动态 inventory hosts：使用 Pulumi SDK 实现一个 Ansible 动态 inventory hosts，该动态 inventory hosts 使用后端存储来获取主机列表。可以定义一个类来实现动态 inventory hosts，该类应该包括用于读取和写入状态的方法。
 
-    # 将 EC2 实例添加到 Ansible inventory 中
-    group_name = tags.get('ansible_group', 'ungrouped')
-    inventory.setdefault(group_name, {'hosts': []})
-    inventory[group_name]['hosts'].append(instance.private_ip_address)
-    inventory['all']['children'].append(group_name)
+* 实现 Ansible Playbook 的状态存储：使用 Pulumi SDK 实现一个 Ansible Playbook 的状态存储，该状态存储使用后端存储来存储 Playbook 的状态。可以定义一个类来实现状态存储，该类应该包括用于读取和写入状态的方法。
 
-    # 将 EC2 实例的元数据添加到 Ansible inventory 中
-    inventory['_meta']['hostvars'][instance.private_ip_address] = {
-        'ansible_host': instance.private_ip_address,
-        'ansible_user': tags.get('ansible_user', 'ubuntu'),
-        'ansible_ssh_private_key_file': tags.get('ansible_ssh_private_key_file', '~/.ssh/id_rsa'),
-        'ansible_python_interpreter': tags.get('ansible_python_interpreter', '/usr/bin/python')
-    }
+* 集成 Pulumi：将后端存储、动态 inventory hosts 和状态存储集成到 Pulumi 中。可以使用 Pulumi SDK 中的自定义资源来实现集成，自定义资源应该包括用于读取和写入状态的方法。
 
-# 将 Ansible inventory 字典输出为 JSON 格式
-print(json.dumps(inventory))
+* 测试和部署：测试您的后端存储是否能够正常工作，并将其部署到生产环境中。
 
-# 定义一个函数，用于返回Ansible所需的主机清单
-def get_inventory():
-    # 定义一个字典，用于存储主机清单
-    inventory = {
-        "web": {
-            "hosts": [
-                "web1.example.com",
-                "web2.example.com"
-            ],
-            "vars": {
-                "ansible_ssh_user": "ubuntu"
-            }
-        },
-        "db": {
-            "hosts": [
-                "db1.example.com",
-                "db2.example.com"
-            ],
-            "vars": {
-                "ansible_ssh_user": "ubuntu"
-            }
-        },
-        "_meta": {
-            "hostvars": {
-                "web1.example.com": {
-                    "ansible_ssh_private_key_file": "/path/to/web1/private/key"
-                },
-                "web2.example.com": {
-                    "ansible_ssh_private_key_file": "/path/to/web2/private/key"
-                },
-                "db1.example.com": {
-                    "ansible_ssh_private_key_file": "/path/to/db1/private/key"
-                },
-                "db2.example.com": {
-                    "ansible_ssh_private_key_file": "/path/to/db2/private/key"
-                }
-            }
-        }
-    }
-
-    # 将主机清单转换为JSON格式并返回
-    return json.dumps(inventory)
-
-# 定义一个函数，用于解析命令行参数
-def parse_args():
-    parser = argparse.ArgumentParser(description="Ansible dynamic inventory script")
-    parser.add_argument("--list", help="List all hosts", action="store_true")
-    parser.add_argument("--host", help="Get variables for a specific host")
-    return parser.parse_args()
-
-# 如果脚本被调用时传入了--list参数，则打印主机清单并退出
-# 如果脚本被调用时传入了--host参数，则打印指定主机的变量并退出
-# 否则，打印脚本的使用说明并退出
-if __name__ == "__main__":
-    args = parse_args()
-    if args.list:
-        print(get_inventory())
-    elif args.host:
-        print("{}")
-    else:
-        print("Usage: {} [--list] [--host <hostname>]".format(__file__))
-
-```
+该设计方案使用 Pulumi SDK 实现了一个后端存储，该后端存储可以存储 AWS、Azure 等云资源的状态，同时还支持 Ansible 动态 inventory hosts 和 Playbook 的状态存储。这种设计方案可以提供一个强大的基础设施管理解决方案，同时也可以扩展到其他云提供商和工具。
